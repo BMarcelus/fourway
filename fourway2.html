@@ -1,0 +1,622 @@
+<style type="text/css">
+	canvas {
+		border: 1px solid black;
+		background: black;
+	}
+</style>
+<canvas id="gc"></canvas>
+<script>
+
+var CE = document.getElementById('gc');
+CE.width = 480;
+CE.height = 480;
+var canvas = CE.getContext('2d');
+
+function simpleArc(direction) {
+	return {
+		direction: direction,
+		draw: simpleArc.draw,
+		input: simpleArc.input,
+		da: Math.PI/4,
+		angleOffset: 0,
+		color1: simpleArc.color1,
+		color2: simpleArc.color2,
+	}
+}
+simpleArc.color1 = "#0dd";
+simpleArc.color2 = "#0ff";
+
+simpleArc.draw = function(canvas, x, y, r, w, i, d) {
+	// x+=Math.cos((frameCount+i*2)*Math.PI/20)*r/100;
+	// y+=Math.sin((frameCount+i*2)*Math.PI/20)*r/100;
+	
+	canvas.lineWidth = w;
+		if(i) canvas.strokeStyle="rgba(255,255,255,.1)";
+		else canvas.strokeStyle="rgba(255,255,255,.2)";
+		canvas.beginPath();
+		canvas.arc(x,y,r,0, Math.PI*2);
+		canvas.stroke();
+	canvas.beginPath();
+	if(i) canvas.strokeStyle=this.color1;
+	else canvas.strokeStyle=this.color2;
+	var a = ((d||this.direction)+2) * Math.PI/2+this.angleOffset;
+	var da = this.da-r/5000;
+	canvas.arc(x,y,r,a-da, a+da);
+	canvas.stroke();
+}
+simpleArc.input = function(direction) {
+	if(direction == this.direction) {
+		this.shouldDelete = true;
+		return true;
+	}
+	return false;
+}
+
+
+function largeArc(direction) {
+	return {
+		direction: direction,
+		draw: simpleArc.draw,
+		input: largeArc.input,
+		da: Math.PI*3/4,
+		angleOffset: 0,
+		color1: simpleArc.color1,
+		color2: simpleArc.color2,
+	}
+}
+
+largeArc.input = function(direction) {
+	if((direction+2)%4 != this.direction) {
+		this.shouldDelete = true;
+		return true;
+	}
+	return false;
+}
+
+
+largeArc.input = function(direction) {
+	if((direction+2)%4 != this.direction) {
+		this.shouldDelete = true;
+		return true;
+	}
+	return false;
+}
+
+function largeRedArc(direction) {
+	return {
+		direction: direction,
+		draw: redArc.draw,
+		input: simpleArc.input,
+		da: Math.PI*3/4,
+		angleOffset: Math.PI,
+		color1: redArc.color1,
+		color2: redArc.color2,
+		disableBack: true,
+	}
+}
+
+function redArc(direction) {
+	return {
+		direction: direction,
+		draw: redArc.draw,
+		input: largeArc.input,
+		da: Math.PI/4,
+		angleOffset: Math.PI,
+		color1: redArc.color1,
+		color2: redArc.color2,
+		disableBack: true,		
+	}
+}
+redArc.color1 = "#a00";
+redArc.color2 = "#f00";
+
+redArc.draw = function(canvas, x, y, r, w, i) {
+	simpleArc.draw.call(this,canvas,x,y,r, w,i);
+	simpleArc.draw.call(this,canvas,x,y,r, w,i);	
+	// simpleArc.draw.call(this,canvas,x,y,r-w*.3, w*.1,i);
+	// simpleArc.draw.call(this,canvas,x,y,r+w*.2, w*.6,i);	
+	// canvas.globalAlpha=1;
+}
+
+function multiArc(direction) {
+	var obj = {
+		direction: direction,
+		directions: {},
+		count: 0,
+		draw: multiArc.draw,
+		input: multiArc.input,
+		da: Math.PI*.27,
+		angleOffset: 0,
+		color1: multiArc.color1,
+		color2: multiArc.color2,
+		reset: multiArc.reset,
+		maxCount: 2,
+	}
+	for(var i=0;i<obj.maxCount;i++) {
+		obj.directions[(direction+i)%4] = 1;
+		obj.count++;
+	}
+	// obj.directions[(direction+3)%4] = 1;	
+	return obj;
+}
+multiArc.color1 = "#dd0";
+multiArc.color2 = "#ff0";
+
+multiArc.reset = function() {
+	var direction = this.direction;
+	this.count=0;
+	for(var i=0;i<this.maxCount;i++) {
+		this.directions[(direction+i)%4] = 1;
+		this.count ++;
+	}
+	this.shouldDelete=false;
+}
+
+multiArc.input = function(direction) {
+	if(!this.directions[direction])return false;
+	this.directions[direction] = false;
+	this.count --;
+	if(this.count <=0 )this.shouldDelete = true;
+	return true;
+}
+
+multiArc.draw = function(canvas, x, y, r, w, i) {
+	for(var d=0;d<4;d++) {
+		if(!this.directions[d])continue;
+		var dr = Math.abs(this.direction-d)%3;
+		simpleArc.draw.call(this, canvas, x, y, r-w/4, w/2, i, d+4);
+	}
+}
+
+function draw(things, animationTime, effects) {
+	canvas.clearRect(0,0,CE.width,CE.height);
+	var cx = CE.width/2;
+	var cy = CE.height/2;
+
+	var r = 70+22*animationTime;
+	var w = 25-3*animationTime;
+	for(var i=0; i<8; i++) {
+		var a = things[i];
+		if(!a)continue;
+		var cw = w;
+		if(i==0)cw = w*1.5;
+		// else cw = w*1.5;
+		a.draw(canvas, cx, cy, r, cw, i);
+		r+=w*1.1;
+		w=w-=2;
+	}
+	effects.forEach(function(effect) {
+		effect.draw(canvas);
+	})
+}
+
+function rotatingArc(direction) {
+	return {
+		direction: direction,
+		_direction: direction,
+		draw: rotatingArc.draw,
+		input: simpleArc.input,
+		da: Math.PI/4,
+		angleOffset: 0,
+		color1: rotatingArc.color1,
+		color2: rotatingArc.color2,
+		update: rotatingArc.update,
+		reset: rotatingArc.reset,
+		animationTimer: 100,
+		animationTime: 100,
+		rotates: true,
+		rotateSpeed: 1,
+	}
+}
+rotatingArc.color1 = "#0d0";
+rotatingArc.color2 = "#0f0";
+rotatingArc.update = function() {
+	this.direction = (this.direction +this.rotateSpeed)%4;
+	this.animationTimer= this.animationTime;
+}
+rotatingArc.reset = function() {
+	this.direction = this._direction;
+	this.animationTimer=0;
+}
+rotatingArc.draw = function(canvas,x,y,r,w,i) {
+	var dt = 1000/60;
+	if(this.animationTimer>dt) {
+		this.animationTimer -= dt;
+	} else this.animationTimer=0;
+	var da = this.da;
+	this.angleOffset = -Math.PI/2*this.animationTimer/this.animationTime*this.rotateSpeed;
+	simpleArc.draw.call(this,canvas,x,y,r,w/2,i)
+	this.angleOffset+=da-Math.PI/8;
+	this.da=Math.PI/8;
+	simpleArc.draw.call(this,canvas,x,y,r,w,i)
+	this.da=da;	
+	
+}
+
+function rotatingArc2(direction) {
+	var obj = rotatingArc(direction);
+	obj.rotateSpeed=2;
+	obj.color1 = rotatingArc2.color1;
+	obj.color2 = rotatingArc2.color2;
+	return obj;
+}
+rotatingArc2.color1 = "#fa0";
+rotatingArc2.color2 = "#d80";
+
+function largeRotatingArc(direction) {
+	return {
+		direction: direction,
+		_direction: direction,
+		draw: rotatingArc.draw,
+		input: largeArc.input,
+		da: Math.PI/4*3,
+		angleOffset: 0,
+		color1: rotatingArc.color1,
+		color2: rotatingArc.color2,
+		update: rotatingArc.update,
+		reset: rotatingArc.reset,
+		animationTimer: 100,
+		animationTime: 100,
+		rotates: true,
+		rotateSpeed: 1,
+	}
+}
+
+
+var arcs = [simpleArc, largeArc, redArc, largeRedArc, multiArc, rotatingArc];
+// arcs = [rotatingArc, simpleArc, simpleArc, largeArc];
+// arcs.push(simpleArc, simpleArc, simpleArc);
+// arcs = [rotatingArc,simpleArc];
+
+function newRound(length, arcs, patterns) {
+	var result = [];
+	var last = -1;
+	var pattern = null;
+	if(patterns) pattern = patterns[Math.floor(Math.random()*patterns.length)];
+	var offset = Math.floor(Math.random()*4);
+	for(var i=0; i<length; i++) {
+		var r = Math.floor(Math.random()*3);
+		var t = Math.floor(Math.random()*arcs.length);
+		if(r>=last) r+= 1;
+		last = r;
+		if(pattern) {
+			r = (pattern[i]+offset)%4;
+		}
+		if(patterns && i==3) {
+			pattern = patterns[Math.floor(Math.random()*patterns.length)];
+			offset = Math.floor(Math.random()*4);			
+		}
+		var arc =arcs[t](r);
+		if(arc.count) last = (last+arc.count-1)%4;
+		if(arc.rotates) {
+			arc.direction = (r - i*arc.rotateSpeed)%4;
+			arc._direction = arc.direction;
+		}	
+		result[i]=arc;		
+	}
+	return result;
+}
+
+function drawEffect(canvas, strokeStyle) {
+	canvas.strokeStyle = ((strokeStyle || "rgba(255,255,255,")+(this.life/200+.5)+")");
+	canvas.lineWidth = this.w+(100-this.life)/2;
+	canvas.beginPath();
+	var a = (this.direction+2) * Math.PI/2;
+	var dr = Math.PI/4;
+	canvas.arc(this.x,this.y,this.r+(100-this.life)/2,a-dr, a+dr);
+	canvas.stroke();
+}
+
+function drawErrorEffect(canvas) {
+	if(this.life>this.deactive)return;
+	drawEffect.call(this,canvas, this.color);
+}
+
+function updateEffect(dt) {
+	this.life -= dt;
+	if(this.life <=0) this.shouldDelete = true;
+}
+
+function bubbleEffect(x,y,vx,vy, r, color, life) {
+	var object = {
+		x: x, y: y, vx: vx, vy: vy,
+		r: r, color: color,
+		life: life,
+		update: bubbleEffect.update,
+		draw: bubbleEffect.draw,
+	}
+	return object;
+}
+bubbleEffect.update = function(dt) {
+	this.x += this.vx;
+	this.y += this.vy;
+	this.life-=dt;
+	this.r -= dt/20;
+	if(this.life<=0) {
+		this.shouldDelete = true;
+	}
+}
+bubbleEffect.draw = function() {
+	canvas.fillStyle=this.color;
+	canvas.beginPath();
+	canvas.arc(this.x,this.y,this.r,0,Math.PI*2);
+	canvas.fill();
+}
+
+function addEffects(arc, direction) {
+	var object = {
+		life: 100,
+		draw: drawEffect,
+		update: updateEffect,
+		direction: direction,
+		x: CE.width/2,
+		y: CE.height/2,
+		r: 60,
+		w: 40,
+	}
+	this.push(object);
+	// var cx = CE.width/2;
+	// var cy = CE.height/2;
+	// var da = Math.PI/4;
+	// var angle = direction*Math.PI/2+Math.PI
+	// for(var i=0;i<50;i++) {
+	// 	var o = (Math.random()-.5)*da;
+	// 	var a = angle+o;
+	// 	var v = Math.floor(Math.random()*5)+7;
+	// 	this.push(bubbleEffect(
+	// 		cx+Math.cos(a)*60,
+	// 		cy+Math.sin(a)*60+(Math.random()-.5)*10,
+	// 		Math.cos(angle+o*2)*v,
+	// 		Math.sin(angle+o*2)*v,
+	// 		15+Math.random()*10, "#fff",
+	// 		200
+	// 	));
+	// }
+}
+
+function errorEffect(direction, life, deactive, color) {
+	var object = {
+		life: life||100,
+		deactive: deactive || 0,
+		draw: drawErrorEffect,
+		update: updateEffect,
+		direction: direction,
+		color: color||"rgba(255,0,0,",
+		x: CE.width/2,
+		y: CE.height/2,
+		r: 60,
+		w: 40,
+	}
+	return object;
+}
+
+function addErrorEffects(direction) {
+	this.push(errorEffect(direction, 100,100));
+	this.push(errorEffect(direction, 150,50,"rgba(255,255,255,"));
+	this.push(errorEffect(direction, 200,50));
+	this.push(errorEffect(direction, 235,25,"rgba(255,255,255,"));	
+	this.push(errorEffect(direction, 270,25));
+}
+
+var frameCount = 0;
+
+var levels = [
+	{
+		name: 'Level 1',
+		arcs: [simpleArc],
+	},
+	{
+		name: 'Level 2-1',
+		arcs: [largeArc],
+	},
+	{
+		name: 'Level 2-2',
+		arcs: [simpleArc, largeArc],
+	},
+	{
+		name: 'Level 3',
+		arcs: [redArc],
+	},
+	{
+		name: 'Level 3-2',
+		arcs: [redArc, largeRedArc]
+	},
+	{
+		name: 'Level 3-3',
+		arcs: [largeArc, largeRedArc]
+	},
+	{
+		name: 'Level 3-4',
+		arcs: [simpleArc, redArc]
+	},
+	{
+		name: 'Level 3-5',
+		arcs: [simpleArc, largeArc, largeRedArc, redArc]
+	},
+	{
+		name: 'Level 4-1',
+		arcs: [multiArc, simpleArc],
+	},
+	{
+		name: 'Level 4-2',
+		arcs: [multiArc, simpleArc, redArc],
+	},
+	{
+		name: 'Level 4-3',
+		arcs: [multiArc, simpleArc, redArc, largeArc, largeRedArc],
+	},
+	{
+		name: 'Level 5-1',
+		arcs: [rotatingArc],
+		patterns: [
+			[0,1,2,3,0,1,2,3],
+			[0,2,0,2,0,2,0,2],
+			[0,3,2,1,0,3,2,1],
+		],
+	},
+	{
+		name: 'Level 5-2',
+		arcs: [rotatingArc],
+	},
+	{
+		name: 'Level 5-2b',
+		arcs: [largeRotatingArc],
+	},
+	{
+		name: 'Level 5-3',
+		arcs: [rotatingArc, simpleArc],
+	},
+	{
+		name: 'Level 5-4',
+		arcs: [largeRotatingArc, rotatingArc, multiArc, simpleArc, redArc, largeArc, largeRedArc],
+	},
+];
+
+var patterns= [
+	[0,1,2,3,0,1,2,3],
+	[0,2,0,2,0,2,0,2],
+	[0,3,2,1,0,3,2,1],
+];
+
+function start() {
+	var roundSize = 8;
+	var currentIndex = 0;
+	var score = 0;
+	var levelIndex = 0;//levels.length-1;
+	
+	var things = newRound(roundSize, levels[levelIndex].arcs);
+
+	var hitAnimationTimer = 0;
+	var HIT_ANIMATION_TIME = 100;
+	var inputBlockTimer = 100;
+	var inputBlockTime = 100;
+
+	var screenShakeOn = true;
+	var error = false;
+
+
+	var effects = [];
+	effects.addEffects = addEffects;
+	effects.addErrorEffects = addErrorEffects;
+
+	var easeAnimation = 0;
+	var easeAnimationTime = 250;
+	var easeAnimationTimer=easeAnimationTime;
+
+	function startInputTimer(time) {
+		inputBlockTimer = time;
+		inputBlockTime = time;
+	}
+
+	var lastTime = Date.now();
+	function step() {
+		frameCount++;
+		var currentTime = Date.now();
+		var dt = currentTime - lastTime;
+		lastTime = currentTime;
+
+		var screenShakeMag = hitAnimationTimer/HIT_ANIMATION_TIME*8;
+		var theta = hitAnimationTimer*Math.PI/20+frameCount+dt;
+		var screenShake = Math.cos(theta)*screenShakeMag;
+		var screenShakey = Math.sin(theta)*screenShakeMag;
+		if(error) {
+			screenShake=screenShake*2;
+			screenShakey = screenShakey * 2;
+		}
+		screenShakeOn = error;
+		canvas.save();
+		if(hitAnimationTimer && screenShakeOn)
+		canvas.translate(screenShake, screenShakey);
+		if(!error)
+		canvas.globalAlpha = 1-inputBlockTimer/inputBlockTime
+		draw(things.slice(currentIndex), hitAnimationTimer/HIT_ANIMATION_TIME, effects);
+		canvas.restore();
+		canvas.fillStyle = "white";
+		canvas.font = "50px Impact";
+		canvas.fillText(score, 30,50,70,70);
+
+		if(hitAnimationTimer>dt)hitAnimationTimer -= dt;
+		else {
+			hitAnimationTimer = 0;
+			
+			error=false;
+			if(currentIndex>=things.length) {
+				if(score > 1) {
+					score = 0;
+					levelIndex ++;
+				}
+				if(levelIndex>=levels.length)levelIndex = levels.length-1;
+				var level = levels[levelIndex];
+				things = newRound(roundSize, levels[levelIndex].arcs, level.patterns);				
+				currentIndex=0;
+				startInputTimer(250);
+			}
+		}
+
+		if(inputBlockTimer > dt) {
+			inputBlockTimer -= dt;
+		}
+		else if(inputBlockTimer>0){
+			inputBlockTimer = 0;
+			easeAnimationTimer = easeAnimationTime;
+			currentIndex=0;
+		}
+
+		for(var i=0;i<effects.length;i++) {
+			var e = effects[i];
+			e.update(dt);
+			if(e.shouldDelete) {
+				effects.splice(i,1);
+				i--;
+			}
+		}
+
+		window.requestAnimationFrame(step);
+	}
+	step();
+
+	var lastKey = -1;
+
+	window.addEventListener('keydown', function(e) {
+		var d = e.keyCode;
+		if(d==65)d=0;
+		else if(d==87) d=1;
+		else if(d==68) d=2;
+		else if(d==83) d=3;
+		else d= d-37;
+
+		if(d>3||d<0)return;
+		lastKey=d;
+		e.preventDefault();
+		if(inputBlockTimer > 0) return;
+		var thing = things[currentIndex];
+		if(!thing)return;
+		var inputSuccess = thing.input(d);
+		if(inputSuccess) {
+			things.forEach(function(e){if(e.update)e.update();})
+		}
+		if(thing.shouldDelete) {
+			hitAnimationTimer = HIT_ANIMATION_TIME;
+			effects.addEffects(thing, d);			
+			// things.shift();
+			currentIndex ++;
+			score++;
+			
+		}
+		if(!inputSuccess) {
+			hitAnimationTimer = HIT_ANIMATION_TIME*2;
+			error = true;
+			score -= 10;
+			if(score<0)score=0;
+			effects.addErrorEffects(d);
+			startInputTimer(500);
+			easeAnimation = 1;
+			things.forEach(function(e) {
+				if(e.reset)e.reset();
+			})
+		}
+	});
+}
+start();
+
+</script>
