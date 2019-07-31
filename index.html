@@ -1,11 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Fourway</title>	
+  <title>Fourway - Game by Brian Dizon</title>
+  <meta name="description" content="
+  Arrow Keys or WASD
+  Press towards the blue.
+  Press away from the red.
+  Time stops before each round until you start.
+  You can go as fast as you want. You don't have to wait for the arrows.
+  ">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143849635-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143849635-1');
+  </script>	
 </head>
 <body>
 <canvas width=400 height=400 style="display:block; margin:auto;"></canvas>
 <button id="login">login</button>
+<a href="https://bmarcelus.github.io">More games</a>
 <script language="javascript" src = "./newgroundsioapi/bin/newgroundsio.js"></script>
 <script language="javascript" src = "./apiHandler.js"></script>
 <script language="javascript" src = "./assetHandler.js"></script>
