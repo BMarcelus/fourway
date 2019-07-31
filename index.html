@@ -20,17 +20,17 @@
 </head>
 <body>
 <canvas width=400 height=400 style="display:block; margin:auto;"></canvas>
-<button id="login">login</button>
+<!-- <button id="login">login</button> -->
 <a href="https://bmarcelus.github.io">More games</a>
-<script language="javascript" src = "./newgroundsioapi/bin/newgroundsio.js"></script>
-<script language="javascript" src = "./apiHandler.js"></script>
+<!-- <script language="javascript" src = "./newgroundsioapi/bin/newgroundsio.js"></script> -->
+<!-- <script language="javascript" src = "./apiHandler.js"></script> -->
 <script language="javascript" src = "./assetHandler.js"></script>
 <script type="text/javascript">
-document.querySelector('button').addEventListener('click', function(e) {
-	requestLogin();
-});
+// document.querySelector('button').addEventListener('click', function(e) {
+// 	requestLogin();
+// });
 
-initSession();
+// initSession();
 
 var level = 1;
 var experience = 0;
@@ -456,7 +456,7 @@ function lose(){
 	if(score>highScore)highScore=score;
 	timing=false;
 	timer=-1;
-	postScore("score", score);
+	// postScore("score", score);
 	// moves=[];
 	// canvas.fillStyle="red";
 	// canvas.globalAlpha=.25;
